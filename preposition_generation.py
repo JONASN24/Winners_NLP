@@ -1,4 +1,5 @@
 import nltk
+import en
 from nltk.parse.stanford import StanfordParser
 
 sentences = ["I talked to Sam.", 
@@ -86,14 +87,13 @@ for sentence in sentences:
     verb_property = tag_list[verb_ind]
     if verb_property == 'VBD':
         do_word = 'did'
-        verb = 
     elif verb_property == 'VBP':
         do_word = 'does'
     else:
         do_word = 'do'
 
     start_key = qkey_dict[next_type]
-    print ' '.join([start_key,do_word,prev_noun,verb,tagged[prop_ind][0], '?'])
+    print ' '.join([start_key,do_word,prev_noun,en.verb.present(verb),tagged[prop_ind][0], '?'])
     print '\n'
 
     
