@@ -1,0 +1,9 @@
+sentences = ["Sam came from a weird country."]
+
+for sentence in sentences:
+    tokens = nltk.word_tokenize(sentence)
+    tagged = nltk.pos_tag(tokens)
+    
+    entities = nltk.chunk.ne_chunk(tagged)
+    for t in entities.subtrees():
+        print t , '\n'
