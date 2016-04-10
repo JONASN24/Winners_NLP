@@ -43,13 +43,7 @@ def unigram_train():
     trainfeats = negfeats + posfeats
     classifier = NaiveBayesClassifier.train(trainfeats)
     return classifier
-    # negcutoff = len(negfeats)*3/4
-    # poscutoff = len(posfeats)*3/4
-    # trainfeats = negfeats[:negcutoff] + posfeats[:poscutoff]
-    # testfeats = negfeats[negcutoff:] + posfeats[poscutoff:]
-    # print 'train on %d instances, test on %d instances' % (len(trainfeats), len(testfeats))
-    # print 'accuracy:', nltk.classify.util.accuracy(classifier, testfeats)
-
+   
 def bigram_train():
     negfeats = []
     posfeats = []
@@ -67,18 +61,50 @@ def bigram_train():
     classifier = NaiveBayesClassifier.train(trainfeats)
     return classifier
 
-unigram_classifier = train()
-bigram_classifier = bigram_train()
+
+# unigram_classifier = unigram_train()
+# bigram_classifier = bigram_train()
 
 
-f = open('unigram_classifier.pickle', 'wb')
-pickle.dump(unigram_classifier, f)
+# f = open('unigram_classifier.pickle', 'wb')
+# pickle.dump(unigram_classifier, f)
+# f.close()
+
+# f = open('bigram_classifier.pickle', 'wb')
+# pickle.dump(bigram_classifier, f)
+# f.close()
+
+f = open('unigram_classifier.pickle', 'rb')
+unigram_classifier = pickle.load(f)
 f.close()
 
-f = open('bigram_classifier.pickle', 'wb')
-pickle.dump(bigram_classifier, f)
+f = open('bigram_classifier.pickle', 'rb')
+bigram_classifier = pickle.load(f)
 f.close()
 
-print unigram_classifier.prob_classify([("I",True),("Love",True),("You",True)])
+
+def analyze(sentence):
+    words = re.sub("[^\w]", " ",  sentence).split()
+    unigram_feature = word_feats(words)
+    bigram_feature = bigram_feats(words) 
+    unigram_dist = unigram_classifier.prob_classify(unigram_feature)
+    bigram_dist = bigram_classifier.prob_classify(bigram_feature)
+    uni_positive_confidence = unigram_dist.prob(1)
+    bi_positive_confidence = bigram_dist.prob(1)
+    
+    if unigram_dist >= 0.5:
+        linear_confidence = uni_positive_confidence * 0.7  \
+                        + bi_positive_confidence * 0.3
+    else:
+        linear_confidence = uni_positive_confidence * 0.3 \
+                        + bi_positive_confidence * 0.7
+
+    print sentence, uni_positive_confidence,\
+          bi_positive_confidence, linear_confidence
 
 
+# analyze("I like you.")
+# analyze("I like you so much.")
+# analyze("I hate you.")
+# analyze("I hate you so much.")
+# analyze("Messi failed at that season.")

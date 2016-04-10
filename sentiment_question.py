@@ -12,3 +12,12 @@ generate("hello")
 
 def answer(question):
      pass
+
+
+
+# negcutoff = len(negfeats)*3/4
+# poscutoff = len(posfeats)*3/4
+# trainfeats = negfeats[:negcutoff] + posfeats[:poscutoff]
+# testfeats = negfeats[negcutoff:] + posfeats[poscutoff:]
+# print 'train on %d instances, test on %d instances' % (len(trainfeats), len(testfeats))
+# print 'accuracy:', nltk.classify.util.accuracy(classifier, testfeats)
