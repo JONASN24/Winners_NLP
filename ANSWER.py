@@ -1,8 +1,9 @@
-QUESTION = 'How many cities were on the list that Pittsburgh was named on?'
+QUESTION = 'Was Alessandro Volta a professor of chemistry?'
 
 # Parse the text into a list of sentences
 import sys
 import nltk.data
+import math
 
 article = sys.argv[1]
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
@@ -12,21 +13,15 @@ with open(article, 'r') as myfile:
    data = myfile.read().replace('\n', '').decode('utf-8')
    mydoclist = tokenizer.tokenize(data)
 
-
-#mydoclist = ['sun sky bright', 'sun sun bright']
-
 from collections import Counter
 
 for doc in mydoclist:
     tf = Counter()
     for word in doc.split():
         tf[word] +=1
-    # # print tf.items()
 
 ########################################
 # 2
-
-
 import string #allows for format()
 
 def build_lexicon(corpus):
@@ -44,7 +39,7 @@ def freq(term, document):
 vocabulary = build_lexicon(mydoclist)
 
 doc_term_matrix = []
-# # print 'Our vocabulary vector is [' + ', '.join(list(vocabulary)) + ']'
+
 for doc in mydoclist:
     # # print 'The doc is "' + doc + '"'
     tf_vector = [tf(word, doc) for word in vocabulary]
@@ -81,7 +76,6 @@ for vec in doc_term_matrix:
 # from numpy import linalg as la
 # la.norm(doc_term_matrix[0])
 # la.norm(doc_term_matrix_l2[0])
-
 
 ########################################
 # 4.
@@ -133,8 +127,7 @@ for tf_vector in doc_term_matrix_tfidf:
 # # print np.matrix(doc_term_matrix_tfidf_l2) # np.matrix() just to make it easier to look at
 
 ########################################
-# my
-
+# Our work
 
 print '[Q] "%s"' % QUESTION
 
@@ -156,4 +149,49 @@ for i in xrange(len(mydoclist)):
         maxVal = result[i]
         maxIdx = i
 
-print '[A] "%s"\n' % mydoclist[maxIdx]
+ANSWER = mydoclist[maxIdx]
+
+# Identify easy yes/no questions
+# Ref: http://www.isi.edu/natural-language/projects/webclopedia/Taxonomy/YES-NO.html
+# Assume the question and answer all have a length at least 1.
+first_word = QUESTION.split(' ', 1)[0]
+
+def outputAns(q, a):
+    # Get all nouns in q
+    q_tokens = nltk.word_tokenize(q)
+    q_tagged = nltk.pos_tag(q_tokens)
+    q_nouns = []
+    for t in q_tagged:
+        if (t[1] == 'NN'):
+            q_nouns.append(t[0])
+
+    # Get all nouns in a
+    a_tokens = nltk.word_tokenize(a)
+    a_tagged = nltk.pos_tag(a_tokens)
+    a_nouns = []
+    for t in a_tagged:
+        if (t[1] == 'NN'):
+            a_nouns.append(t[0])
+
+    # Naive: Go through the nouns and compare if they are
+    # the same
+    shorter = min(len(q_nouns), len(a_nouns))
+    diff = 0
+    for i in xrange(shorter):
+        aN = a_nouns[i]
+        qN = q_nouns[i]
+        if (aN != qN):
+            print "[A] No"
+            return
+
+    print "[A] Yes"
+
+if (first_word == 'Is') or (first_word == 'Does') or (first_word == 'Did') \
+   or (first_word == 'Do') or (first_word == 'Was') or (first_word == 'Are')\
+   or (first_word == 'Can') or (first_word == 'Has') or (first_word == 'Have')\
+   or (first_word == 'Will'):
+
+   outputAns(QUESTION, ANSWER)
+
+else:
+    print '[A] "%s"\n' % ANSWER
