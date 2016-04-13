@@ -7,6 +7,9 @@ from collections import Counter
 import string #allows for format()
 import numpy as np
 
+YN_words = ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']
+critical_tags = ['NN', 'CD', 'NNP']
+
 #########################
 # process article
 #########################
@@ -129,34 +132,34 @@ def answer(question):
     ####################
     # (1) Ordinary question
     ####################
-    if (first_word not in ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']):
+    if (first_word not in YN_words):
        return matching_string
 
     ####################
     # (2) Yes/No question
     ####################
-    q_tokens = nltk.word_tokenize(question)
-    q_tagged = nltk.pos_tag(q_tokens)
-    q_critical_info = set([])
 
-    critical_tags = ['NN', 'CD', 'NNP']
+    # parse the question to obtain critical information
+    tokens = nltk.word_tokenize(question)
+    tagged = nltk.pos_tag(tokens)
+    critical_info = set([])
+    for t in tagged:
+        if (t[1] in critical_tags and t[0] not in YN_words):
+            critical_info.add(t[0])
 
-    for t in q_tagged:
-        if (t[1] in critical_tags):
-            if (t[0] not in ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']):
-                q_critical_info.add(t[0])
-
-    # check useful information in question/answer. Must match exactly.
-    for x in q_critical_info:
+    # any critical info in question must appear in matching string.
+    for x in critical_info:
         if x not in matching_string:
             return 'No.'
-    return 'Yes.'
+    if 'not' in matching_string:
+        return 'No.'
+    else:
+        return 'Yes.'
 
 ####################
 # print answers
 ####################
 with open ('questions.txt', 'r') as q, open('output.txt', 'w+') as a:
     for question in q:
-        # a.write('%s\n' % answer(question))
         print '[Q] %s' % question.replace("\n", "")
         print '[A] %s' % answer(question)
