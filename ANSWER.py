@@ -17,8 +17,8 @@ sentences = []
 with open(sys.argv[1], 'r') as f:
     for line in f:
         if line != '\n':
-            data = line.replace('\n', '')
-            # data = line.replace('\n', '').decode('utf-8')
+            # data = line.replace('\n', '')
+            data = line.replace('\n', '').decode('utf-8')
             sentences += tokenizer.tokenize(data)
 
 for s in sentences:
