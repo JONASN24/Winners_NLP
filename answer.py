@@ -116,7 +116,6 @@ def answer(question):
     V2 = l2_normalizer(V1)
     result = np.dot(doc_term_matrix_tfidf_l2,V2)
 
-
     # matching string = the sentence that is most similar to the question
     maxVal = 0
     maxIdx = -1
@@ -135,13 +134,26 @@ def answer(question):
     if (first_word not in YN_words):
        return matching_string
 
-    ####################
-    # (2) Yes/No question
-    ####################
 
-    # parse the question to obtain critical information
+
     tokens = nltk.word_tokenize(question)
     tagged = nltk.pos_tag(tokens)
+
+    ####################
+    # (2) either/or question
+    ####################
+    if 'or' in tokens:
+        i = tokens.index('or')
+        if tokens[i-1] in matching_string:
+            return tokens[i-1] + '.'
+        else:
+            return tokens[i+1] + '.'
+
+    ####################
+    # (3) Yes/No question
+    ####################
+    # parse the question to obtain critical information
+
     critical_info = set([])
     for t in tagged:
         if (t[1] in critical_tags and t[0] not in YN_words):
