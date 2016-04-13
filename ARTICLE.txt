@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Isaac_Newton
 
 
@@ -343,3 +344,6 @@ Various trees are claimed to be "the" apple tree which Newton describes. The Kin
 
 
 
+=======
+Alessandro Volta was a professor of chemistry. He has taught at Carnegie Mellon for 3 years. Sam is a Sha bi.
+>>>>>>> origin/sam
