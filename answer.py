@@ -114,7 +114,7 @@ def answer(question):
     result = np.dot(doc_term_matrix_tfidf_l2,V2)
 
 
-    # matching_string = the sentence that is most similar to the question
+    # matching string = the sentence that is most similar to the question
     maxVal = 0
     maxIdx = -1
     for i in xrange(len(sentences)):
@@ -137,37 +137,20 @@ def answer(question):
     ####################
     q_tokens = nltk.word_tokenize(question)
     q_tagged = nltk.pos_tag(q_tokens)
-    q_nouns = set([])
+    q_critical_info = set([])
 
-
-    critical_tags = ['NN', 'CD']
+    critical_tags = ['NN', 'CD', 'NNP']
 
     for t in q_tagged:
         if (t[1] in critical_tags):
             if (t[0] not in ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']):
-                q_nouns.add(t[0])
-
-    # Get all nouns in matching string
-    a_tokens = nltk.word_tokenize(matching_string)
-    a_tagged = nltk.pos_tag(a_tokens)
-    a_nouns = set([])
-
-    for t in a_tagged:
-        if (t[1] in critical_tags):
-            a_nouns.add(t[0])
-
-    # Naive: Go through the nouns and compare if they are the same
-    # print q_tagged
-    # print a_tagged
-    # print q_nouns
-    # print a_nouns
+                q_critical_info.add(t[0])
 
     # check useful information in question/answer. Must match exactly.
-    for x in q_nouns:
-        if x not in a_nouns:
+    for x in q_critical_info:
+        if x not in matching_string:
             return 'No.'
     return 'Yes.'
-
 
 ####################
 # print answers
