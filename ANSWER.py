@@ -1,34 +1,32 @@
-QUESTION = 'How many cities were on the list that Pittsburgh was named on?'
+#TODO: match root only. E.g. die/died => die
 
-# Parse the text into a list of sentences
 import sys
 import nltk.data
+import math
+from collections import Counter
+import string #allows for format()
+import numpy as np
 
-article = sys.argv[1]
+#########################
+# process article
+#########################
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
-mydoclist = ""
-with open(article, 'r') as myfile:
-   data = myfile.read().replace('\n', '').decode('utf-8')
-   mydoclist = tokenizer.tokenize(data)
+# open article file
+sentences = []
+with open(sys.argv[1], 'r') as f:
+    for line in f:
+        if line != '\n':
+            data = line.replace('\n', '')
+            # data = line.replace('\n', '').decode('utf-8')
+            sentences += tokenizer.tokenize(data)
 
-
-#mydoclist = ['sun sky bright', 'sun sun bright']
-
-from collections import Counter
-
-for doc in mydoclist:
+for s in sentences:
     tf = Counter()
-    for word in doc.split():
+    for word in s.split():
         tf[word] +=1
-    # # print tf.items()
 
-########################################
 # 2
-
-
-import string #allows for format()
-
 def build_lexicon(corpus):
     lexicon = set()
     for doc in corpus:
@@ -41,29 +39,19 @@ def tf(term, document):
 def freq(term, document):
   return document.split().count(term)
 
-vocabulary = build_lexicon(mydoclist)
+vocabulary = build_lexicon(sentences)
 
 doc_term_matrix = []
-# # print 'Our vocabulary vector is [' + ', '.join(list(vocabulary)) + ']'
-for doc in mydoclist:
+
+for doc in sentences:
     # # print 'The doc is "' + doc + '"'
     tf_vector = [tf(word, doc) for word in vocabulary]
     tf_vector_string = ', '.join(format(freq, 'd') for freq in tf_vector)
-    # # print 'The tf vector for Document %d is [%s]' % ((mydoclist.index(doc)+1), tf_vector_string)
+    # # print 'The tf vector for Document %d is [%s]' % ((sentences.index(doc)+1), tf_vector_string)
     doc_term_matrix.append(tf_vector)
 
-    # here's a test: why did I wrap mydoclist.index(doc)+1 in parens?  it returns an int...
-    # try it!  type(mydoclist.index(doc) + 1)
 
-# # print 'All combined, here is our master document term matrix: '
-# # print doc_term_matrix
-
-########################################
 # 3. Normalizing vectors to L2 Norm = 1
-
-import math
-import numpy as np
-
 def l2_normalizer(vec):
     denom = np.sum([el**2 for el in vec])
     return [(el / math.sqrt(denom)) for el in vec]
@@ -71,17 +59,6 @@ def l2_normalizer(vec):
 doc_term_matrix_l2 = []
 for vec in doc_term_matrix:
     doc_term_matrix_l2.append(l2_normalizer(vec))
-
-# # print 'A regular old document term matrix: '
-# # print np.matrix(doc_term_matrix)
-# # print '\nA document term matrix with row-wise L2 norms of 1:'
-# # print np.matrix(doc_term_matrix_l2)
-
-# if you want to check this math, perform the following:
-# from numpy import linalg as la
-# la.norm(doc_term_matrix[0])
-# la.norm(doc_term_matrix_l2[0])
-
 
 ########################################
 # 4.
@@ -98,10 +75,7 @@ def idf(word, doclist):
     df = numDocsContaining(word, doclist)
     return np.log(n_samples / 1+df)
 
-my_idf_vector = [idf(word, mydoclist) for word in vocabulary]
-
-# # print 'Our vocabulary vector is [' + ', '.join(list(vocabulary)) + ']'
-# # print 'The inverse document frequency vector is [' + ', '.join(format(freq, 'f') for freq in my_idf_vector) + ']'
+my_idf_vector = [idf(word, sentences) for word in vocabulary]
 
 
 ########################################
@@ -112,8 +86,6 @@ def build_idf_matrix(idf_vector):
     return idf_mat
 
 my_idf_matrix = build_idf_matrix(my_idf_vector)
-
-## # print my_idf_matrix
 
 
 ########################################
@@ -129,31 +101,79 @@ doc_term_matrix_tfidf_l2 = []
 for tf_vector in doc_term_matrix_tfidf:
     doc_term_matrix_tfidf_l2.append(l2_normalizer(tf_vector))
 
-# # print vocabulary
-# # print np.matrix(doc_term_matrix_tfidf_l2) # np.matrix() just to make it easier to look at
 
 ########################################
-# my
+# Identify easy yes/no questions
+# Ref: http://www.isi.edu/natural-language/projects/webclopedia/Taxonomy/YES-NO.html
+# Assume the question and answer all have a length at least 1.
+
+def answer(question):
+    V = [tf(word, question) for word in vocabulary]
+    V1 = np.dot(V, my_idf_matrix)
+    V2 = l2_normalizer(V1)
+    result = np.dot(doc_term_matrix_tfidf_l2,V2)
 
 
-print '[Q] "%s"' % QUESTION
+    # matching_string = the sentence that is most similar to the question
+    maxVal = 0
+    maxIdx = -1
+    for i in xrange(len(sentences)):
+        if result[i] > maxVal:
+            maxVal = result[i]
+            maxIdx = i
+    matching_string = sentences[maxIdx]
 
-# # print 'The doc is "' + QUESTION + '"'
-V = [tf(word, QUESTION) for word in vocabulary]
-V1 = np.dot(V, my_idf_matrix)
-V2 = l2_normalizer(V1)
+    # check first word to detect yes/no questions
+    first_word = question.split(' ', 1)[0]
 
-# # print 'The tf vector for Document is [%s]' % V2
+    ####################
+    # (1) Ordinary question
+    ####################
+    if (first_word not in ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']):
+       return matching_string
 
-maxVal = 0
-maxIdx = -1
+    ####################
+    # (2) Yes/No question
+    ####################
+    q_tokens = nltk.word_tokenize(question)
+    q_tagged = nltk.pos_tag(q_tokens)
+    q_nouns = set([])
 
-result = np.dot(doc_term_matrix_tfidf_l2,V2)
 
-for i in xrange(len(mydoclist)):
-    if result[i] > maxVal:
-        # print result[i], i
-        maxVal = result[i]
-        maxIdx = i
+    critical_tags = ['NN', 'CD']
 
-print '[A] "%s"\n' % mydoclist[maxIdx]
+    for t in q_tagged:
+        if (t[1] in critical_tags):
+            if (t[0] not in ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']):
+                q_nouns.add(t[0])
+
+    # Get all nouns in matching string
+    a_tokens = nltk.word_tokenize(matching_string)
+    a_tagged = nltk.pos_tag(a_tokens)
+    a_nouns = set([])
+
+    for t in a_tagged:
+        if (t[1] in critical_tags):
+            a_nouns.add(t[0])
+
+    # Naive: Go through the nouns and compare if they are the same
+    # print q_tagged
+    # print a_tagged
+    # print q_nouns
+    # print a_nouns
+
+    # check useful information in question/answer. Must match exactly.
+    for x in q_nouns:
+        if x not in a_nouns:
+            return 'No.'
+    return 'Yes.'
+
+
+####################
+# print answers
+####################
+with open ('questions.txt', 'r') as q, open('output.txt', 'w+') as a:
+    for question in q:
+        # a.write('%s\n' % answer(question))
+        print '[Q] %s' % question.replace("\n", "")
+        print '[A] %s' % answer(question)
