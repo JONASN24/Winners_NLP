@@ -1,4 +1,5 @@
 #TODO: match root only. E.g. die/died => die
+#TODO: Identifying subject
 
 import sys
 import nltk.data
@@ -8,7 +9,9 @@ import string #allows for format()
 import numpy as np
 
 YN_words = ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']
-critical_tags = ['NN', 'CD', 'NNP']
+neg_words = ["isn't", "doesn't", "did't", "don't", "wasn't", "aren't", "can't",\
+            "hasn't", "haven't", "won't"]
+critical_tags = ['NN', 'CD', 'NNP', 'NNS']
 
 #########################
 # process article
@@ -111,10 +114,14 @@ for tf_vector in doc_term_matrix_tfidf:
 # Assume the question and answer all have a length at least 1.
 
 def answer(question):
+    # Create the query vector
     V = [tf(word, question) for word in vocabulary]
-    V1 = np.dot(V, my_idf_matrix)
-    V2 = l2_normalizer(V1)
-    result = np.dot(doc_term_matrix_tfidf_l2,V2)
+    V_norm = l2_normalizer(V)
+    V_tfidf = np.dot(V_norm, my_idf_matrix)
+    V_tfidf_l2 = l2_normalizer(V_tfidf)
+    # Take dot product between the query vector and the
+    # doc matrix we got from the article
+    result = np.dot(doc_term_matrix_tfidf_l2, V_tfidf_l2)
 
     # matching string = the sentence that is most similar to the question
     maxVal = 0
@@ -132,9 +139,7 @@ def answer(question):
     # (1) Ordinary question
     ####################
     if (first_word not in YN_words):
-       return matching_string
-
-
+        return matching_string
 
     tokens = nltk.word_tokenize(question)
     tagged = nltk.pos_tag(tokens)
@@ -153,25 +158,28 @@ def answer(question):
     # (3) Yes/No question
     ####################
     # parse the question to obtain critical information
-
     critical_info = set([])
     for t in tagged:
         if (t[1] in critical_tags and t[0] not in YN_words):
             critical_info.add(t[0])
 
     # any critical info in question must appear in matching string.
+    # print critical_info
+    # print tagged
     for x in critical_info:
         if x not in matching_string:
             return 'No.'
-    if 'not' in matching_string:
-        return 'No.'
+    # Negative words
+    for n_word in neg_words:
+        if n_word in matching_string:
+            return 'No.'
     else:
         return 'Yes.'
 
 ####################
 # print answers
 ####################
-with open ('questions.txt', 'r') as q, open('output.txt', 'w+') as a:
+with open ('questions.txt', 'r') as q:
     for question in q:
         print '[Q] %s' % question.replace("\n", "")
         print '[A] %s' % answer(question)
