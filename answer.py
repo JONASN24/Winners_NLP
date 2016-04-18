@@ -1,6 +1,3 @@
-#TODO: match root only. E.g. die/died => die
-#TODO: Identifying subject
-
 import sys
 import nltk.data
 import math
@@ -8,7 +5,10 @@ from collections import Counter
 import string #allows for format()
 import numpy as np
 
+# Key words of identifying easy yes/no questions
+# Ref: http://www.isi.edu/natural-language/projects/webclopedia/Taxonomy/YES-NO.html
 YN_words = ['Is','Does','Did','Do','Was','Are','Can','Has','Have','Will']
+
 neg_words = ["isn't", "doesn't", "did't", "don't", "wasn't", "aren't", "can't",\
             "hasn't", "haven't", "won't"]
 critical_tags = ['NN', 'CD', 'NNP', 'NNS']
@@ -16,6 +16,9 @@ critical_tags = ['NN', 'CD', 'NNP', 'NNS']
 #########################
 # process article
 #########################
+# Constructing vector space model for the article
+# Ref: http://stanford.edu/~rjweiss/public_html/IRiSS2013/text2/notebooks/tfidf.html
+
 tokenizer = nltk.data.load('tokenizers/punkt/english.pickle')
 
 # open article file
@@ -50,10 +53,8 @@ vocabulary = build_lexicon(sentences)
 doc_term_matrix = []
 
 for doc in sentences:
-    # # print 'The doc is "' + doc + '"'
     tf_vector = [tf(word, doc) for word in vocabulary]
     tf_vector_string = ', '.join(format(freq, 'd') for freq in tf_vector)
-    # # print 'The tf vector for Document %d is [%s]' % ((sentences.index(doc)+1), tf_vector_string)
     doc_term_matrix.append(tf_vector)
 
 
@@ -109,16 +110,14 @@ for tf_vector in doc_term_matrix_tfidf:
 
 
 ########################################
-# Identify easy yes/no questions
-# Ref: http://www.isi.edu/natural-language/projects/webclopedia/Taxonomy/YES-NO.html
-# Assume the question and answer all have a length at least 1.
-
 def answer(question):
+
     # Create the query vector
     V = [tf(word, question) for word in vocabulary]
     V_norm = l2_normalizer(V)
     V_tfidf = np.dot(V_norm, my_idf_matrix)
     V_tfidf_l2 = l2_normalizer(V_tfidf)
+
     # Take dot product between the query vector and the
     # doc matrix we got from the article
     result = np.dot(doc_term_matrix_tfidf_l2, V_tfidf_l2)
@@ -133,7 +132,13 @@ def answer(question):
     matching_string = sentences[maxIdx]
 
     # check first word to detect yes/no questions
-    first_word = question.split(' ', 1)[0]
+    # If the question is empty, then we just return an empty line
+    question_arr = question.split(' ', 1)
+    first_word = ""
+    if len(question_arr) <= 0:
+        return ""
+    else:
+        first_word = question.split(' ', 1)[0]
 
     ####################
     # (1) Ordinary question
@@ -163,12 +168,11 @@ def answer(question):
         if (t[1] in critical_tags and t[0] not in YN_words):
             critical_info.add(t[0])
 
-    # any critical info in question must appear in matching string.
-    # print critical_info
-    # print tagged
+    # Critical info in question must appear in matching string.
     for x in critical_info:
         if x not in matching_string:
             return 'No.'
+
     # Negative words
     for n_word in neg_words:
         if n_word in matching_string:
