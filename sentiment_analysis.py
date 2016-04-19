@@ -61,10 +61,8 @@ def bigram_train():
     classifier = NaiveBayesClassifier.train(trainfeats)
     return classifier
 
-
 # unigram_classifier = unigram_train()
 # bigram_classifier = bigram_train()
-
 
 # f = open('unigram_classifier.pickle', 'wb')
 # pickle.dump(unigram_classifier, f)
@@ -74,16 +72,7 @@ def bigram_train():
 # pickle.dump(bigram_classifier, f)
 # f.close()
 
-f = open('unigram_classifier.pickle', 'rb')
-unigram_classifier = pickle.load(f)
-f.close()
-
-f = open('bigram_classifier.pickle', 'rb')
-bigram_classifier = pickle.load(f)
-f.close()
-
-
-def analyze(sentence):
+def analyze_sentence(sentence, unigram_classifier, bigram_classifier):
     words = re.sub("[^\w]", " ",  sentence).split()
     unigram_feature = word_feats(words)
     bigram_feature = bigram_feats(words) 
@@ -91,20 +80,46 @@ def analyze(sentence):
     bigram_dist = bigram_classifier.prob_classify(bigram_feature)
     uni_positive_confidence = unigram_dist.prob(1)
     bi_positive_confidence = bigram_dist.prob(1)
-    
-    if unigram_dist >= 0.5:
-        linear_confidence = uni_positive_confidence * 0.7  \
-                        + bi_positive_confidence * 0.3
+
+    if uni_positive_confidence > 0.7 or uni_positive_confidence < 0.3:
+        return uni_positive_confidence
     else:
         linear_confidence = uni_positive_confidence * 0.3 \
                         + bi_positive_confidence * 0.7
+        return linear_confidence
 
-    print sentence, uni_positive_confidence,\
-          bi_positive_confidence, linear_confidence
+#return a single positive confidence if input is a sentence
+#return a list of pos confidence if input is a list of sentence
+def analyze(raw_text):
+    f = open('unigram_classifier.pickle', 'rb')
+    unigram_classifier = pickle.load(f)
+    f.close()
+    f = open('bigram_classifier.pickle', 'rb')
+    bigram_classifier = pickle.load(f)
+    f.close()
+    if type(raw_text) is str:
+        pos = analyze_sentence(raw_text,unigram_classifier,bigram_classifier)
+        return pos
+    elif type(raw_text) is list:
+        result = []
+        for sentence in raw_text:
+            cur_pos = analyze_sentence(sentence,unigram_classifier,bigram_classifier)
+            result.append(cur_pos)
+        return result
+
+def give_pos_neg(sentence):
+    confidence = analyze(sentence)
+    if confidence > 0.7:
+        return "Positive."
+    elif (confidence >= 0.3 and confidence < 0.7):
+        return "Neutral."
+    else:
+        return "Negative."
 
 
-# analyze("I like you.")
-# analyze("I like you so much.")
-# analyze("I hate you.")
-# analyze("I hate you so much.")
-# analyze("Messi failed at that season.")
+# print analyze(["I am awesome.","You are fucking stupid.", 
+#        "I hate Sam.", "Wrong."])
+# print analyze("I like you so much.")
+# print analyze("I hate you.")
+# print analyze("I hate you so much.")
+# print analyze("Messi failed at that season.")
